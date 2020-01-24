@@ -12,6 +12,7 @@ import java.util.List;
 public class GripPipeline implements VisionPipeline {
 
     //Outputs
+    private Mat sourceInput = new Mat();
     private Mat cvMedianblurOutput = new Mat();
     private Mat hsvThresholdOutput = new Mat();
     private Mat cvErodeOutput = new Mat();
@@ -27,6 +28,8 @@ public class GripPipeline implements VisionPipeline {
      * This is the primary method that runs the entire pipeline and updates the outputs.
      */
     @Override	public void process(Mat source0) {
+        sourceInput = source0.clone();
+
         // Step CV_medianBlur0:
         Mat cvMedianblurSrc = source0;
         double cvMedianblurKsize = 7.0;
@@ -98,6 +101,8 @@ public class GripPipeline implements VisionPipeline {
     public Mat maskOutput() {
         return maskOutput;
     }
+
+    public Mat getInput() { return sourceInput; }
 
     /**
      * This method is a generated getter for the output of a Find_Blobs.

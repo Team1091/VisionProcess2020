@@ -1,5 +1,6 @@
 import org.opencv.core.*;
 import org.opencv.features2d.Features2d;
+import org.opencv.features2d.FeatureDetector;
 import java.util.concurrent.*;
 
 /**
