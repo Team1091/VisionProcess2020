@@ -54,7 +54,7 @@ public final class Version1 {
             cameras.add(startCamera(config));
         }
 
-        GripPipeline pipeline = new GripPipeline();
+        PipelineWrapper pipeline = new PipelineWrapper();
 
         // start image processing on camera 0 if present
         if (cameras.size() >= 1) {
@@ -76,10 +76,10 @@ public final class Version1 {
         }
     }
 
-    private void UpdateContours(GripPipeline pi, NetworkTable contoursNetworkTable, CvSource imageSource) {
+    private void UpdateContours(PipelineWrapper pi, NetworkTable contoursNetworkTable, CvSource imageSource) {
         try{
             ArrayList<MatOfPoint> contours = pi.findContoursOutput();
-            Mat outputImage = pi.getInput();
+            Mat outputImage = pi.getSourceImage();
             double[] areas = new double[contours.size()];
             double[] centerXs = new double[contours.size()];
             double[] centerYs = new double[contours.size()];
