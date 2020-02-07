@@ -111,7 +111,10 @@ public final class Version1 {
         MjpegServer cvStream = new MjpegServer("CV Image Stream", processedImageStreamPort);
         CvSource imageSource = new CvSource("CV Image Source", VideoMode.PixelFormat.kMJPEG, camera.getVideoMode().width, camera.getVideoMode().height, camera.getVideoMode().fps);
         cvStream.setSource(imageSource);
+        cvStream.setFPS(15);
+        cvStream.setCompression(25);
         srv.addServer(cvStream);
+
         return imageSource;
     }
 
