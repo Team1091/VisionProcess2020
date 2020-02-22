@@ -4,20 +4,21 @@
 /* must be accompanied by the FIRST BSD license file in the root directory of */
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
-import java.util.ArrayList;
-import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
 import edu.wpi.cscore.*;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.vision.VisionThread;
-
-import org.opencv.core.*;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public final class Version1 {
 
@@ -61,7 +62,8 @@ public final class Version1 {
             var camera = cameras.get(0);
             var imageSource = startOutput(camera);
             VisionThread visionThread = new VisionThread(camera, pipeline, pi -> {
-                UpdateContours(pi, ntinst.getTable("SNIP/myContoursReport"), imageSource);
+                //UpdateContours(pi, ntinst.getTable("SNIP/myContoursReport"), imageSource);
+                UpdateLargestContour(pi, ntinst.getTable("SNIP/myContoursReport"), imageSource);
             });
             visionThread.start();
         }
@@ -76,8 +78,51 @@ public final class Version1 {
         }
     }
 
+    private void UpdateLargestContour(PipelineWrapper pi, NetworkTable contoursNetworkTable, CvSource imageSource){
+        try {
+            ArrayList<MatOfPoint> contours = pi.findContoursOutput();
+            Mat outputImage = pi.getSourceImage();
+            double[] areas = new double[1];
+            double[] centerXs = new double[1];
+            double[] centerYs = new double[1];
+            double[] widths = new double[1];
+            double[] heights = new double[1];
+            int largestContour = -1;
+            for (int i = 0; i < contours.size(); i++) {
+                if(largestContour == -1){
+                    largestContour = i;
+                }
+                var areaNew = Imgproc.contourArea(contours.get(i));
+                var areaOld = Imgproc.contourArea(contours.get(largestContour));
+                if(areaNew > areaOld){
+                    largestContour = i;
+                }
+            }
+
+            if(largestContour > -1){
+                Imgproc.drawContours(outputImage, contours, largestContour, new Scalar(255, 255, 255), 1);
+                var req = Imgproc.boundingRect(contours.get(largestContour));
+                areas[0] = Imgproc.contourArea(contours.get(largestContour));
+                centerXs[0] = req.x;  // Not wrong
+                centerYs[0] = req.y; // Not wrong
+                widths[0] = req.width;
+                heights[0] = req.height;
+            }
+
+            imageSource.putFrame(outputImage);
+            contoursNetworkTable.getEntry("area").setDoubleArray(areas);
+            contoursNetworkTable.getEntry("centerX").setDoubleArray(centerXs);
+            contoursNetworkTable.getEntry("centerY").setDoubleArray(centerYs);
+            contoursNetworkTable.getEntry("width").setDoubleArray(widths);
+            contoursNetworkTable.getEntry("height").setDoubleArray(heights);
+        } catch (Exception e) {
+            System.out.println("Call to UpdateContours failed!");
+            throw e;
+        }
+    }
+
     private void UpdateContours(PipelineWrapper pi, NetworkTable contoursNetworkTable, CvSource imageSource) {
-        try{
+        try {
             ArrayList<MatOfPoint> contours = pi.findContoursOutput();
             Mat outputImage = pi.getSourceImage();
             double[] areas = new double[contours.size()];
@@ -85,28 +130,30 @@ public final class Version1 {
             double[] centerYs = new double[contours.size()];
             double[] widths = new double[contours.size()];
             double[] heights = new double[contours.size()];
+            int largestContour = -1;
             for (int i = 0; i < contours.size(); i++) {
                 Imgproc.drawContours(outputImage, contours, i, new Scalar(255, 255, 255), 1);
                 var req = Imgproc.boundingRect(contours.get(i));
                 areas[i] = Imgproc.contourArea(contours.get(i));
-                centerXs[i] = req.x; //Might be wrong
-                centerYs[i] = req.y; //Might be wrong
+                centerXs[i] = req.x;  // Not wrong
+                centerYs[i] = req.y; // Not wrong
                 widths[i] = req.width;
                 heights[i] = req.height;
             }
+
             imageSource.putFrame(outputImage);
             contoursNetworkTable.getEntry("area").setDoubleArray(areas);
             contoursNetworkTable.getEntry("centerX").setDoubleArray(centerXs);
             contoursNetworkTable.getEntry("centerY").setDoubleArray(centerYs);
             contoursNetworkTable.getEntry("width").setDoubleArray(widths);
             contoursNetworkTable.getEntry("height").setDoubleArray(heights);
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.out.println("Call to UpdateContours failed!");
             throw e;
         }
     }
 
-    private CvSource startOutput(VideoSource camera){
+    private CvSource startOutput(VideoSource camera) {
         CameraServer srv = CameraServer.getInstance();
         MjpegServer cvStream = new MjpegServer("CV Image Stream", processedImageStreamPort);
         CvSource imageSource = new CvSource("CV Image Source", VideoMode.PixelFormat.kMJPEG, camera.getVideoMode().width, camera.getVideoMode().height, camera.getVideoMode().fps);

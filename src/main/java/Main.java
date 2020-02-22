@@ -59,18 +59,21 @@ public class Main {
        }
      */
     public static void main(String... args) {
-        if (args.length > 0) {
-            configFile = args[0];
-        }
+        try {
+            if (args.length > 0) {
+                configFile = args[0];
+            }
 
-        // read configuration
-        if (!readConfig()) {
-            return;
-        }
+            // read configuration
+            if (!readConfig()) {
+                return;
+            }
 
-        var runner = new Version1(team, server, cameraConfigs);
-        //Version2 runner = new Version2(team, server, cameraConfigs);
-        runner.run();
+            var runner = new Version1(team, server, cameraConfigs);
+            runner.run();
+        } catch(Exception e){
+            System.out.println("FAILED BADLY");
+        }
     }
 
     /**
